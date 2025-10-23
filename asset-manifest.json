@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/taxsensei-app/static/css/main.871bafb6.css",
-    "main.js": "/taxsensei-app/static/js/main.92f335a5.js",
+    "main.js": "/taxsensei-app/static/js/main.c749aa41.js",
     "static/js/453.1ef27a94.chunk.js": "/taxsensei-app/static/js/453.1ef27a94.chunk.js",
     "index.html": "/taxsensei-app/index.html",
     "main.871bafb6.css.map": "/taxsensei-app/static/css/main.871bafb6.css.map",
-    "main.92f335a5.js.map": "/taxsensei-app/static/js/main.92f335a5.js.map",
+    "main.c749aa41.js.map": "/taxsensei-app/static/js/main.c749aa41.js.map",
     "453.1ef27a94.chunk.js.map": "/taxsensei-app/static/js/453.1ef27a94.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.871bafb6.css",
-    "static/js/main.92f335a5.js"
+    "static/js/main.c749aa41.js"
   ]
 }
