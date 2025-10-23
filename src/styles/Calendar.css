@@ -1,0 +1,290 @@
+.calendar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.calendar-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.calendar-header h2 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.calendar-header p {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.alert {
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 768px) {
+  .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.calendar-card,
+.booking-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.calendar-controls h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
+
+.btn-primary:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-large {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.1rem;
+}
+
+.calendar-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.day-name {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #666;
+  padding: 10px 0;
+}
+
+.calendar-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-day:hover:not(:disabled):not(.past):not(.unavailable) {
+  background: #e7f3ff;
+  border-color: #0d6efd;
+  transform: scale(1.05);
+}
+
+.calendar-day.selected {
+  background: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.calendar-day.past {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+}
+
+.calendar-day.unavailable {
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+  cursor: not-allowed;
+}
+
+.calendar-day.empty {
+  visibility: hidden;
+}
+
+.appointment-indicator {
+  position: absolute;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  background: #ffc107;
+  border-radius: 50%;
+}
+
+.calendar-note {
+  margin-top: 20px;
+  padding: 15px;
+  background: #e7f3ff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #084298;
+}
+
+.calendar-note strong {
+  font-weight: 600;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #adb5bd;
+}
+
+.empty-state svg {
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.booking-card h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+.time-slots-section {
+  margin-bottom: 30px;
+}
+
+.time-slots-section h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.time-slot {
+  padding: 15px;
+  border: 2px solid #dee2e6;
+  background: white;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.time-slot:hover:not(:disabled) {
+  background: #e7f3ff;
+  border-color: #0d6efd;
+}
+
+.time-slot.selected {
+  background: #0d6efd;
+  color: white;
+  border-color: #0d6efd;
+}
+
+.time-slot.unavailable {
+  background: #f8f9fa;
+  color: #adb5bd;
+  cursor: not-allowed;
+  border-color: #dee2e6;
+}
+
+.booking-form {
+  margin-top: 30px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0d6efd;
+}
+
+.form-input::placeholder {
+  color: #adb5bd;
+}

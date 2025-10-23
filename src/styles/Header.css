@@ -1,0 +1,61 @@
+.gradient-background {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  /* background-color: #667eea; */
+  /* color: white; */
+  padding: 80px 0;
+}
+
+.header-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+}
+
+.header-image {
+  display: flex;
+  justify-content: center;
+  align-items: left;
+  
+}
+
+.headshot {
+  width: 100%;
+  max-width: 750px;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.header-text h3 {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  margin-top: 30px;
+  line-height: 1.2;
+  
+}
+
+.header-text .lead {
+  font-size: 1.3rem;
+  opacity: 0.95;
+ 
+}
+
+@media (max-width: 768px) {
+  .header-text h1 {
+    font-size: 2rem;
+  }
+  
+  .header-text .lead {
+    font-size: 1.1rem;
+  }
+}
