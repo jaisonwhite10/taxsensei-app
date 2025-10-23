@@ -1,6 +1,8 @@
 import React from 'react';
 import '../styles/Header.css';
 
+
+
 function Header() {
   return (
     <section id="title" className="gradient-background">
@@ -9,7 +11,7 @@ function Header() {
         <div className="header-content">
           <div className="header-image">
             <img 
-              src="/images/headshot.jpg" 
+              src={`${process.env.PUBLIC_URL}/images/headshot.jpg`}
               alt="Professional headshot" 
               className="headshot"
               onError={(e) => {
