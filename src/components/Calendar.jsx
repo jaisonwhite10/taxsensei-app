@@ -37,6 +37,15 @@ function Calendar() {
     }
   };
 
+  // Convert 24-hour time to 12-hour AM/PM format
+  const formatTimeToAMPM = (time24) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
   // Generate time slots from 9 AM to 3 PM
   const generateTimeSlots = () => {
     const slots = [];
@@ -214,7 +223,7 @@ function Calendar() {
 
       {showConfirmation && (
         <div className="alert alert-success">
-          ✓ Appointment booked successfully for {formatDisplayDate(selectedDate)} at {selectedTime}
+          ✓ Appointment booked successfully for {formatDisplayDate(selectedDate)} at {formatTimeToAMPM(selectedTime)}
         </div>
       )}
 
@@ -312,7 +321,7 @@ function Calendar() {
                         disabled={!isAvailable}
                         className={className}
                       >
-                        {time}
+                        {formatTimeToAMPM(time)}
                       </button>
                     );
                   })}
