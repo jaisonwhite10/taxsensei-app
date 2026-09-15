@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/Calendar.css';
+import {supabase,addClient,createAppointment} from '../lib/supabaseClient'; // Import addClient function
 
 function Calendar() {
   const [selectedDate, setSelectedDate] = useState(null);
@@ -8,6 +9,7 @@ function Calendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userNotes, setUserNotes] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -17,25 +19,42 @@ function Calendar() {
   }, []);
 
   // API: Fetch all appointments
-  const fetchAppointments = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/appointments');
-      const data = await response.json();
-      
-      // Convert array to object keyed by date
-      const appointmentsByDate = {};
-      data.forEach(apt => {
-        if (!appointmentsByDate[apt.date]) {
-          appointmentsByDate[apt.date] = [];
-        }
-        appointmentsByDate[apt.date].push(apt);
-      });
-      
-      setAppointments(appointmentsByDate);
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
+ const fetchAppointments = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('appointment_time')
+      .order('appointment_time', { ascending: true });
+
+    if (error) {
+      throw error;
     }
-  };
+
+    const appointmentsByDate = {};
+
+    data.forEach((apt) => {
+      const appointmentDate = new Date(apt.appointment_time);
+
+      const date = appointmentDate.toLocaleDateString('en-CA');
+      const time = appointmentDate.toTimeString().slice(0, 5);
+
+      if (!appointmentsByDate[date]) {
+        appointmentsByDate[date] = [];
+      }
+
+      appointmentsByDate[date].push({
+        ...apt,
+        date,
+        time
+      });
+    });
+
+    setAppointments(appointmentsByDate);
+
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+  }
+};
 
   // Convert 24-hour time to 12-hour AM/PM format
   const formatTimeToAMPM = (time24) => {
@@ -46,10 +65,10 @@ function Calendar() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  // Generate time slots from 9 AM to 3 PM
+  // Generate time slots from 10 AM to 3 PM
   const generateTimeSlots = () => {
     const slots = [];
-    for (let hour = 9; hour <= 15; hour++) {
+    for (let hour = 10; hour <= 15; hour++) {
       slots.push(`${hour}:00`);
     }
     return slots;
@@ -59,37 +78,35 @@ function Calendar() {
 
   // Check if a date has available slots
   const hasAvailableSlots = (dateStr) => {
-    const dayAppointments = appointments[dateStr] || [];
-    
-    if (dayAppointments.length === 0) return true;
-    if (dayAppointments.length >= 2) return false;
+  const dayAppointments = appointments[dateStr] || [];
 
-    const bookedHours = dayAppointments.map(apt => parseInt(apt.time.split(':')[0]));
-    const availableSlots = timeSlots.filter(slot => {
-      const slotHour = parseInt(slot.split(':')[0]);
-      return !bookedHours.includes(slotHour) && 
-             !bookedHours.includes(slotHour + 1) &&
-             slotHour + 2 <= 15;
-    });
+  // Maximum 2 appointments per day
+  if (dayAppointments.length >= 2) {
+    return false;
+  }
 
-    return availableSlots.length > 0;
+  // No appointments = at least one slot available
+  if (dayAppointments.length === 0) {
+    return true;
+  }
+
+  // Check whether at least one 2-hour slot remains
+  return timeSlots.some(time => isTimeSlotAvailable(dateStr, time));
   };
 
   // Check if a specific time slot is available
   const isTimeSlotAvailable = (dateStr, time) => {
-    const dayAppointments = appointments[dateStr] || [];
-    const hour = parseInt(time.split(':')[0]);
+  const dayAppointments = appointments[dateStr] || [];
+  const selectedStart = parseInt(time.split(':')[0]);
+  const selectedEnd = selectedStart + 2;
 
-    if (dayAppointments.some(apt => apt.time === time)) {
-      return false;
-    }
+  return !dayAppointments.some(apt => {
+    const bookedStart = parseInt(apt.time.split(':')[0]);
+    const bookedEnd = bookedStart + 2;
 
-    const blockedHours = dayAppointments.flatMap(apt => {
-      const bookedHour = parseInt(apt.time.split(':')[0]);
-      return [bookedHour - 1, bookedHour, bookedHour + 1];
-    });
-
-    return !blockedHours.includes(hour);
+    // Check whether the two 2-hour blocks overlap
+    return selectedStart < bookedEnd && selectedEnd > bookedStart;
+  });
   };
 
   // Generate calendar days
@@ -119,6 +136,15 @@ function Calendar() {
     return date.toISOString().split('T')[0];
   };
 
+  const getEarliestBookingDate = () => {
+  const earliestDate = new Date();
+
+  earliestDate.setHours(0, 0, 0, 0);
+  earliestDate.setDate(earliestDate.getDate() + 2);
+
+  return earliestDate;
+};
+
   const formatDisplayDate = (date) => {
     if (!date) return '';
     return date.toLocaleDateString('en-US', { 
@@ -131,13 +157,13 @@ function Calendar() {
 
   const handleDateClick = (date) => {
     if (!date) return;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (date < today) return;
+
+    const earliestBookingDate = getEarliestBookingDate();
+
+    if (date < earliestBookingDate) return;
 
     const dateStr = formatDate(date);
+
     if (!hasAvailableSlots(dateStr)) return;
 
     setSelectedDate(date);
@@ -152,53 +178,68 @@ function Calendar() {
   };
 
   // API: Book appointment
-  const handleBooking = async () => {
-    if (!selectedDate || !selectedTime || !userName || !userEmail) return;
+const handleBooking = async () => {
+  if (!selectedDate || !selectedTime || !userName || !userEmail) {
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const response = await fetch('http://localhost:5000/api/appointments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          date: formatDate(selectedDate),
-          time: selectedTime,
-          name: userName,
-          email: userEmail
-        })
-      });
+  try {
+    const dateStr = formatDate(selectedDate);
 
-      if (response.ok) {
-        const newAppointment = await response.json();
-        
-        // Update local state
-        const dateStr = formatDate(selectedDate);
-        setAppointments(prev => ({
-          ...prev,
-          [dateStr]: [...(prev[dateStr] || []), newAppointment]
-        }));
+    const appointmentDateTime = new Date(
+      `${dateStr}T${selectedTime}:00`
+    );
 
-        setShowConfirmation(true);
-        setTimeout(() => {
-          setShowConfirmation(false);
-          setSelectedDate(null);
-          setSelectedTime(null);
-          setUserName('');
-          setUserEmail('');
-        }, 3000);
-      } else {
-        alert('Failed to book appointment. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error booking appointment:', error);
-      alert('Error booking appointment. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Add client
+    await addClient({
+      name: userName,
+      email: userEmail
+    });
+
+    // Add appointment
+    const newAppointment = await createAppointment({
+      name: userName.trim(),
+      email: userEmail.trim().toLowerCase(),
+      appointment_time: appointmentDateTime.toISOString(),
+      notes: userNotes.trim() || null
+    });
+
+    // Update calendar immediately
+    setAppointments(prev => ({
+      ...prev,
+      [dateStr]: [
+        ...(prev[dateStr] || []),
+        {
+          ...newAppointment,
+          date: dateStr,
+          time: selectedTime
+        }
+      ]
+    }));
+
+    setShowConfirmation(true);
+
+    setTimeout(() => {
+      setShowConfirmation(false);
+      setSelectedDate(null);
+      setSelectedTime(null);
+      setUserName('');
+      setUserEmail('');
+      setUserNotes('');
+    }, 3000);
+
+  } catch (error) {
+    console.error('Error booking appointment:', error);
+
+    alert(
+      `Error booking appointment: ${error.message || 'Please try again.'}`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const changeMonth = (direction) => {
     setCurrentMonth(prev => {
@@ -211,8 +252,7 @@ function Calendar() {
   };
 
   const days = getDaysInMonth();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const earliestBookingDate = getEarliestBookingDate();
 
   return (
     <div className="calendar-container">
@@ -255,13 +295,13 @@ function Calendar() {
               }
 
               const dateStr = formatDate(date);
-              const isPast = date < today;
+              const isBeforeBookingWindow = date < earliestBookingDate;              
               const isSelected = selectedDate && formatDate(selectedDate) === dateStr;
               const hasSlots = hasAvailableSlots(dateStr);
               const appointmentCount = (appointments[dateStr] || []).length;
 
               let className = 'calendar-day';
-              if (isPast) className += ' past';
+              if (isBeforeBookingWindow) className += ' past';              
               else if (!hasSlots) className += ' unavailable';
               else if (isSelected) className += ' selected';
 
@@ -269,7 +309,7 @@ function Calendar() {
                 <button
                   key={dateStr}
                   onClick={() => handleDateClick(date)}
-                  disabled={isPast || !hasSlots}
+                  disabled={isBeforeBookingWindow || !hasSlots}
                   className={className}
                 >
                   {date.getDate()}
@@ -348,6 +388,16 @@ function Calendar() {
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
                       placeholder="john@example.com"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div>
+                    <label>Additional Information</label>
+                    <textarea
+                      value={userNotes}
+                      onChange={(e) => setUserNotes(e.target.value)}
+                      placeholder="Any additional information..."
                       className="form-input"
                     />
                   </div>

@@ -11,7 +11,7 @@ function AboutMe() {
             <div className="about-image">
               <img 
                 src={`${process.env.PUBLIC_URL}/images/headshot.jpg`} 
-                alt="Jaison - Tax Professional" 
+                alt="Jaison - Enrolled Agent" 
                 className="profile-image"
                 onError={(e) => {
                   e.target.src = 'https://via.placeholder.com/400x400?text=Jaison';
@@ -19,7 +19,7 @@ function AboutMe() {
               />
             </div>
             <h1 className="profile-name">Jaison White</h1>
-            <h3 className="profile-title">Tax Professional</h3>
+            <h3 className="profile-title">Enrolled Agent</h3>
             <div className="credentials">
                {/* <div className="credential-item">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
