@@ -9,52 +9,36 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey)
 export async function addClient(data) {
   const { name, email } = data;
 
-  // Check whether client already exists
-  const { data: existingClient, error: lookupError } = await supabase
-    .from('clients')
-    .select('id')
-    .eq('email', email.trim().toLowerCase())
-    .maybeSingle();
+  const { data: clientId, error } = await supabase.rpc('add_client', {
+    client_name: name,
+    client_email: email
+  });
 
-  if (lookupError) {
-    console.error('Error checking for existing client:', lookupError);
-    throw lookupError;
+  if (error) {
+    console.error('Error adding client:', error);
+    throw error;
   }
 
-  // Client already exists
-  if (existingClient) {
-    return existingClient;
-  }
-
-  // Client doesn't exist, so create them
-  const { data: newClient, error: insertError } = await supabase
-    .from('clients')
-    .insert([{
-      name: name.trim(),
-      email: email.trim().toLowerCase()
-    }])
-    .select()
-    .single();
-
-  if (insertError) {
-    console.error('Error creating client:', insertError);
-    throw insertError;
-  }
-
-  return newClient;
+  return { id: clientId };
 }
 
-export async function createAppointment({ name, email, appointment_time, notes }) {
-  const { data, error } = await supabase
-    .from('appointments')
-    .insert([{ name, email, appointment_time, notes: notes || null }])
-    .select()
-    .single();
- 
+export async function createAppointment({
+  name,
+  email,
+  appointment_time,
+  notes
+}) {
+  const { data, error } = await supabase.rpc('book_appointment', {
+    p_name: name,
+    p_email: email,
+    p_appointment_time: appointment_time,
+    p_notes: notes || null
+  });
+
   if (error) {
     console.error('Error creating appointment:', error);
     throw error;
   }
- 
+
   return data;
 }
