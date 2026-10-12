@@ -7,8 +7,8 @@ function Pricing() {
     {
       name: "Tax Advice / Return Review",
       description: "Get professional guidance or have your tax return reviewed for accuracy.",
-      price: "$30 - $75",
-      priceLabel: "Basic - Advanced",
+      price: "",
+      priceLabel: "",
       features: [
         "W-2 income",
         "Interest and dividend income reported on a 1099-INT or 1099-DIV",
@@ -25,8 +25,8 @@ function Pricing() {
     {
       name: "Tax Return Preparation",
       description: "Professional preparation of individual tax returns based on your specific tax situation.",
-      price: "$50 - $150",
-      priceLabel: "Basic - Advanced",
+      price: "",
+      priceLabel: "",
       features: [
         "Itemized deductions claimed on Schedule A, like charitable contributions, medical expenses, mortgage interest and state and local tax deductions",
         "Unemployment income reported on a 1099-G",
@@ -43,8 +43,8 @@ function Pricing() {
     {
       name: "Bookkeeping Services",
       description: "Keep your business finances organized with straightforward bookkeeping support.",
-      price: "$50 - $150",
-      priceLabel: "Basic - Advanced",
+      price: "",
+      priceLabel: "",
       features: [
         "Transaction categorization",
         "Bank reconciliation",
@@ -56,23 +56,25 @@ function Pricing() {
         
       ],
       buttonText: "Contact Us",
-      buttonClass: "btn-primary"
+      buttonClass: "btn-primary",
+      featured: true
     },
 
     {
       name: "Tax Representation",
       description: "Assistance with IRS correspondence, notices, and routine tax matters.",
-      price: "$50 - $150",
-      priceLabel: "Basic - Advanced",
+      price: "",
+      priceLabel: "",
       features: [
         "IRS notices and correspondence",
         "Understanding and responding to IRS notices",
         "Routine IRS representation",
-        "Representation for eligibleaudits and appeals",
+        "Representation for eligible audits and appeals",
       
       ],
       buttonText: "Contact Us",
-      buttonClass: "btn-primary"
+      buttonClass: "btn-primary",
+      featured: true
     }
   ];
 
