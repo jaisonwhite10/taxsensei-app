@@ -1,7 +1,10 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Calendar.css';
-import {supabase,addClient,createAppointment} from '../lib/supabaseClient'; // Import addClient function
+import {
+  supabase,
+  addClient,
+  createAppointment
+} from '../lib/supabaseClient';
 
 function Calendar() {
   const [selectedDate, setSelectedDate] = useState(null);
@@ -9,17 +12,26 @@ function Calendar() {
   const [appointments, setAppointments] = useState({});
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [userName, setUserName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userNotes, setUserNotes] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Reference to the green confirmation message
+  const confirmationRef = useRef(null);
+
+  // Store the booked appointment details so the confirmation
+  // remains accurate even if the selected date/time is reset.
+  const [confirmedAppointment, setConfirmedAppointment] = useState(null);
 
   // Fetch appointments from API on mount
   useEffect(() => {
     fetchAppointments();
   }, []);
 
-  // API: Fetch all appointments
+  // Fetch all appointments
   const fetchAppointments = async () => {
     try {
       const { data, error } = await supabase
@@ -35,7 +47,6 @@ function Calendar() {
 
       data.forEach((apt) => {
         const appointmentDate = new Date(apt.appointment_time);
-
         const date = appointmentDate.toLocaleDateString('en-CA');
         const time = appointmentDate.toTimeString().slice(0, 5);
 
@@ -51,7 +62,6 @@ function Calendar() {
       });
 
       setAppointments(appointmentsByDate);
-
     } catch (error) {
       console.error('Error fetching appointments:', error);
     }
@@ -60,9 +70,10 @@ function Calendar() {
   // Convert 24-hour time to 12-hour AM/PM format
   const formatTimeToAMPM = (time24) => {
     const [hours, minutes] = time24.split(':');
-    const hour = parseInt(hours);
+    const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
     const hour12 = hour % 12 || 12;
+
     return `${hour12}:${minutes} ${ampm}`;
   };
 
@@ -70,17 +81,18 @@ function Calendar() {
   const generateTimeSlots = (date = null) => {
     const slots = [];
 
-    // Saturday appointments are limited to 9 AM through noon
+    // Saturday appointments: 9 AM through 11 AM
     if (date && date.getDay() === 6) {
       for (let hour = 9; hour <= 11; hour++) {
-        slots.push(`${hour}:00`);
+        slots.push(`${String(hour).padStart(2, '0')}:00`);
       }
+
       return slots;
     }
 
-    // Monday through Friday appointments are available from 10 AM to 3 PM
+    // Monday through Friday: 10 AM through 3 PM
     for (let hour = 10; hour <= 15; hour++) {
-      slots.push(`${hour}:00`);
+      slots.push(`${String(hour).padStart(2, '0')}:00`);
     }
 
     return slots;
@@ -90,42 +102,38 @@ function Calendar() {
     ? generateTimeSlots(selectedDate)
     : generateTimeSlots();
 
-  // Check if a date has available slots
+  // Check whether a date has available slots
   const hasAvailableSlots = (dateStr) => {
     const date = new Date(`${dateStr}T12:00:00`);
     const dayAppointments = appointments[dateStr] || [];
 
-    // Sunday is never available
+    // Sunday is unavailable
     if (date.getDay() === 0) {
       return false;
     }
 
-    // Maximum 2 appointments per day
+    // Maximum of two appointments per day
     if (dayAppointments.length >= 2) {
       return false;
     }
 
-    // No appointments = at least one slot available
     if (dayAppointments.length === 0) {
       return true;
     }
 
-    // Check whether at least one 2-hour slot remains
-    return generateTimeSlots(date).some(time =>
+    return generateTimeSlots(date).some((time) =>
       isTimeSlotAvailable(dateStr, time)
     );
   };
 
-  // Check if a specific time slot is available
+  // Check whether a specific time slot is available
   const isTimeSlotAvailable = (dateStr, time) => {
     const date = new Date(`${dateStr}T12:00:00`);
 
-    // Sunday has no available appointment times
     if (date.getDay() === 0) {
       return false;
     }
 
-    // Saturday appointments are restricted to 9 AM, 10 AM, and 11 AM
     if (date.getDay() === 6) {
       const allowedSaturdayTimes = ['09:00', '10:00', '11:00'];
 
@@ -135,15 +143,17 @@ function Calendar() {
     }
 
     const dayAppointments = appointments[dateStr] || [];
-    const selectedStart = parseInt(time.split(':')[0]);
+    const selectedStart = parseInt(time.split(':')[0], 10);
     const selectedEnd = selectedStart + 2;
 
-    return !dayAppointments.some(apt => {
-      const bookedStart = parseInt(apt.time.split(':')[0]);
+    return !dayAppointments.some((apt) => {
+      const bookedStart = parseInt(apt.time.split(':')[0], 10);
       const bookedEnd = bookedStart + 2;
 
-      // Check whether the two 2-hour blocks overlap
-      return selectedStart < bookedEnd && selectedEnd > bookedStart;
+      return (
+        selectedStart < bookedEnd &&
+        selectedEnd > bookedStart
+      );
     });
   };
 
@@ -171,7 +181,13 @@ function Calendar() {
 
   const formatDate = (date) => {
     if (!date) return '';
-    return date.toISOString().split('T')[0];
+
+    // Use local calendar date rather than converting to UTC.
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   };
 
   const getEarliestBookingDate = () => {
@@ -185,6 +201,7 @@ function Calendar() {
 
   const formatDisplayDate = (date) => {
     if (!date) return '';
+
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -196,7 +213,6 @@ function Calendar() {
   const handleDateClick = (date) => {
     if (!date) return;
 
-    // Prevent Sunday from ever being selected
     if (date.getDay() === 0) return;
 
     const earliestBookingDate = getEarliestBookingDate();
@@ -219,9 +235,15 @@ function Calendar() {
     }
   };
 
-  // API: Book appointment
+  // Book appointment
   const handleBooking = async () => {
-    if (!selectedDate || !selectedTime || !userName || !userEmail) {
+    if (
+      !selectedDate ||
+      !selectedTime ||
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !userEmail.trim()
+    ) {
       return;
     }
 
@@ -229,6 +251,8 @@ function Calendar() {
 
     try {
       const dateStr = formatDate(selectedDate);
+      const bookedDate = selectedDate;
+      const bookedTime = selectedTime;
 
       const appointmentDateTime = new Date(
         `${dateStr}T${selectedTime}:00`
@@ -236,47 +260,67 @@ function Calendar() {
 
       // Add client
       await addClient({
-        name: userName,
-        email: userEmail
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: userEmail.trim().toLowerCase()
       });
 
       // Add appointment
       const newAppointment = await createAppointment({
-        name: userName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         email: userEmail.trim().toLowerCase(),
         appointment_time: appointmentDateTime.toISOString(),
         notes: userNotes.trim() || null
       });
 
       // Update calendar immediately
-      setAppointments(prev => ({
+      setAppointments((prev) => ({
         ...prev,
         [dateStr]: [
           ...(prev[dateStr] || []),
           {
             ...newAppointment,
             date: dateStr,
-            time: selectedTime
+            time: bookedTime
           }
         ]
       }));
 
+      // Save the successful booking details for the confirmation
+      setConfirmedAppointment({
+        date: bookedDate,
+        time: bookedTime
+      });
+
       setShowConfirmation(true);
 
+      // Scroll to the confirmation once React has rendered it
+      // Scroll to the top of the calendar page
+       window.scrollTo({
+        top: document.querySelector('.calendar-container').getBoundingClientRect().top + window.scrollY - 100,
+        behavior: 'smooth'
+      });
+
+      // Reset the form after the confirmation has been displayed
       setTimeout(() => {
         setShowConfirmation(false);
         setSelectedDate(null);
         setSelectedTime(null);
         setUserName('');
+        setFirstName('');
+        setLastName('');
         setUserEmail('');
         setUserNotes('');
-      }, 3000);
+      }, 5000);
 
     } catch (error) {
       console.error('Error booking appointment:', error);
 
       alert(
-        `Error booking appointment: ${error.message || 'Please try again.'}`
+        `Error booking appointment: ${
+          error.message || 'Please try again.'
+        }`
       );
     } finally {
       setLoading(false);
@@ -284,7 +328,7 @@ function Calendar() {
   };
 
   const changeMonth = (direction) => {
-    setCurrentMonth(prev => {
+    setCurrentMonth((prev) => {
       const newDate = new Date(prev);
       newDate.setMonth(prev.getMonth() + direction);
       return newDate;
@@ -305,8 +349,10 @@ function Calendar() {
       </div>
 
       {showConfirmation && (
-        <div className="alert alert-success">
-          ✓ Appointment booked successfully for {formatDisplayDate(selectedDate)} at {formatTimeToAMPM(selectedTime)}
+        <div className="alert alert-success" role="status">
+          ✓ Appointment booked successfully for{' '}
+          {formatDisplayDate(selectedDate)} at{' '}
+          {formatTimeToAMPM(selectedTime)}
         </div>
       )}
 
@@ -314,7 +360,10 @@ function Calendar() {
         {/* Calendar Section */}
         <div className="calendar-card">
           <div className="calendar-controls">
-            <button onClick={() => changeMonth(-1)} className="btn btn-primary">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="btn btn-primary"
+            >
               ← Prev
             </button>
 
@@ -325,34 +374,51 @@ function Calendar() {
               })}
             </h3>
 
-            <button onClick={() => changeMonth(1)} className="btn btn-primary">
+            <button
+              onClick={() => changeMonth(1)}
+              className="btn btn-primary"
+            >
               Next →
             </button>
           </div>
 
           <div className="calendar-days-header">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="day-name">{day}</div>
-            ))}
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(
+              (day) => (
+                <div key={day} className="day-name">
+                  {day}
+                </div>
+              )
+            )}
           </div>
 
           <div className="calendar-days">
             {days.map((date, idx) => {
               if (!date) {
-                return <div key={`empty-${idx}`} className="calendar-day empty" />;
+                return (
+                  <div
+                    key={`empty-${idx}`}
+                    className="calendar-day empty"
+                  />
+                );
               }
 
               const dateStr = formatDate(date);
               const isSunday = date.getDay() === 0;
-              const isBeforeBookingWindow = date < earliestBookingDate;
+              const isBeforeBookingWindow =
+                date < earliestBookingDate;
               const isSelected =
-                selectedDate && formatDate(selectedDate) === dateStr;
+                selectedDate &&
+                formatDate(selectedDate) === dateStr;
               const hasSlots = hasAvailableSlots(dateStr);
-             
 
               let className = 'calendar-day';
 
-              if (isSunday || isBeforeBookingWindow || !hasSlots) {
+              if (
+                isSunday ||
+                isBeforeBookingWindow ||
+                !hasSlots
+              ) {
                 className += ' past';
               } else if (isSelected) {
                 className += ' selected';
@@ -370,15 +436,14 @@ function Calendar() {
                   className={className}
                 >
                   {date.getDate()}
-
-                
                 </button>
               );
             })}
           </div>
 
           <div className="calendar-note">
-            <strong>Note:</strong> Each appointment requires a 30 minute time block.
+            <strong>Note:</strong> Each appointment requires a 2-hour
+            time block.
           </div>
         </div>
 
@@ -401,10 +466,10 @@ function Calendar() {
                   height="18"
                   rx="2"
                   ry="2"
-                ></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
+                />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
               </svg>
 
               <p>Select a date to view available times</p>
@@ -417,7 +482,7 @@ function Calendar() {
                 <h4>Available Times</h4>
 
                 <div className="time-slots">
-                  {timeSlots.map(time => {
+                  {timeSlots.map((time) => {
                     const dateStr = formatDate(selectedDate);
                     const isAvailable =
                       isTimeSlotAvailable(dateStr, time);
@@ -425,8 +490,13 @@ function Calendar() {
 
                     let className = 'time-slot';
 
-                    if (!isAvailable) className += ' unavailable';
-                    if (isSelected) className += ' selected';
+                    if (!isAvailable) {
+                      className += ' unavailable';
+                    }
+
+                    if (isSelected) {
+                      className += ' selected';
+                    }
 
                     return (
                       <button
@@ -445,21 +515,33 @@ function Calendar() {
               {selectedTime && (
                 <div className="booking-form">
                   <div className="form-group">
-                    <label>Your Name</label>
-
+                    <label htmlFor="first-name">First Name</label>
                     <input
+                      id="first-name"
                       type="text"
-                      value={userName}
-                      onChange={(e) => setUserName(e.target.value)}
-                      placeholder="John Doe"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="First Name"
                       className="form-input"
                     />
                   </div>
 
                   <div className="form-group">
-                    <label>Your Email</label>
-
+                    <label htmlFor="last-name">Last Name</label>
                     <input
+                      id="last-name"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Last Name"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="booking-email">Your Email</label>
+                    <input
+                      id="booking-email"
                       type="email"
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
@@ -468,10 +550,12 @@ function Calendar() {
                     />
                   </div>
 
-                  <div>
-                    <label>Additional Information</label>
-
+                  <div className="form-group">
+                    <label htmlFor="booking-notes">
+                      Additional Information
+                    </label>
                     <textarea
+                      id="booking-notes"
                       value={userNotes}
                       onChange={(e) => setUserNotes(e.target.value)}
                       placeholder="Any additional information..."
@@ -481,10 +565,17 @@ function Calendar() {
 
                   <button
                     onClick={handleBooking}
-                    disabled={!userName || !userEmail || loading}
+                    disabled={
+                      !firstName.trim() ||
+                      !lastName.trim() ||
+                      !userEmail.trim() ||
+                      loading
+                    }
                     className="btn btn-primary btn-large"
                   >
-                    {loading ? 'Booking...' : 'Confirm Appointment'}
+                    {loading
+                      ? 'Booking...'
+                      : 'Confirm Appointment'}
                   </button>
                 </div>
               )}
@@ -497,5 +588,3 @@ function Calendar() {
 }
 
 export default Calendar;
-
-

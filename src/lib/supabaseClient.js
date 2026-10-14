@@ -7,10 +7,11 @@ const supabasePublishableKey = process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY;
 export const supabase = createClient(supabaseUrl, supabasePublishableKey)
 
 export async function addClient(data) {
-  const { name, email } = data;
+  const { first_name, last_name, email } = data;
 
   const { data: clientId, error } = await supabase.rpc('add_client', {
-    client_name: name,
+    client_first_name: first_name,
+    client_last_name: last_name,
     client_email: email
   });
 
@@ -23,13 +24,15 @@ export async function addClient(data) {
 }
 
 export async function createAppointment({
-  name,
+  first_name,
+  last_name,
   email,
   appointment_time,
   notes
 }) {
   const { data, error } = await supabase.rpc('book_appointment', {
-    p_name: name,
+    p_first_name: first_name,
+    p_last_name: last_name,
     p_email: email,
     p_appointment_time: appointment_time,
     p_notes: notes || null
