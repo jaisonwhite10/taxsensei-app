@@ -80,7 +80,7 @@ const Contact = () => {
       setStatus({
         loading: false,
         success:
-          "Your message has been sent successfully. Thank you for contacting TaxSensei!",
+          "Your message has been sent successfully. Thank you for contacting me!",
         error: "",
       });
 
