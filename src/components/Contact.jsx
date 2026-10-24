@@ -4,10 +4,12 @@ import "../styles/Contact.css";
 
 // Set these environment variables in your React project.
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const SUPABASE_ANON_KEY =
+  process.env.REACT_APP_SUPABASE_PUBLISHABLE_KEY;
 
+// Updated to match your deployed Supabase Edge Function name.
 const CONTACT_API_URL = SUPABASE_URL
-  ? `${SUPABASE_URL}/functions/v1/contact-email`
+  ? `${SUPABASE_URL}/functions/v1/create-email`
   : "";
 
 const Contact = () => {
@@ -42,7 +44,8 @@ const Contact = () => {
       setStatus({
         loading: false,
         success: "",
-        error: "The contact form is not configured yet. Please try again later.",
+        error:
+          "The contact form is not configured yet. Please try again later.",
       });
       return;
     }
@@ -73,7 +76,9 @@ const Contact = () => {
 
       if (!response.ok) {
         throw new Error(
-          result.error || "Unable to send your message. Please try again."
+          result.error ||
+            result.message ||
+            `Unable to send your message (HTTP ${response.status}). Please try again.`
         );
       }
 
@@ -201,7 +206,9 @@ const Contact = () => {
                 className="btn-submit"
                 disabled={status.loading}
               >
-                {status.loading ? "Sending message..." : "Send Message"}
+                {status.loading
+                  ? "Sending message..."
+                  : "Send Message"}
               </button>
             </div>
           </form>
