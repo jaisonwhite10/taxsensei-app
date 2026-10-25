@@ -9,7 +9,7 @@ function Footer() {
   return (
     <footer className="site-footer">
       <p>
-        © {new Date().getFullYear()} J.W. Tax Pro. All rights reserved.
+        © {new Date().getFullYear()} Jaison White. All rights reserved.
       </p>
 
       <div className="footer-links">

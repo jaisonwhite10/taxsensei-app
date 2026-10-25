@@ -11,9 +11,9 @@
 
 .about-content {
   display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 80px;
-  align-items: start;
+  /* grid-template-columns: 1fr 1.5fr;
+  /* gap: 80px; */
+  /*align-items: start; */
 }
 
 .about-left {
