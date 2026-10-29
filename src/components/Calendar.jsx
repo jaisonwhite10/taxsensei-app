@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/Calendar.css';
 import {
@@ -15,23 +16,24 @@ function Calendar() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [appointmentType, setAppointmentType] = useState('');
   const [userNotes, setUserNotes] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Reference to the green confirmation message
+  // Reference to the confirmation message.
   const confirmationRef = useRef(null);
 
-  // Store the booked appointment details so the confirmation
-  // remains accurate even if the selected date/time is reset.
+  // Store booked appointment details for the confirmation message.
   const [confirmedAppointment, setConfirmedAppointment] = useState(null);
 
-  // Fetch appointments from API on mount
+  // Fetch appointments when the component mounts.
   useEffect(() => {
     fetchAppointments();
   }, []);
 
-  // Fetch all appointments
+  // Fetch all appointments.
   const fetchAppointments = async () => {
     try {
       const { data, error } = await supabase
@@ -67,8 +69,10 @@ function Calendar() {
     }
   };
 
-  // Convert 24-hour time to 12-hour AM/PM format
+  // Convert 24-hour time to 12-hour AM/PM format.
   const formatTimeToAMPM = (time24) => {
+    if (!time24) return '';
+
     const [hours, minutes] = time24.split(':');
     const hour = parseInt(hours, 10);
     const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -77,11 +81,11 @@ function Calendar() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  // Generate time slots based on the selected day
+  // Generate time slots based on the selected day.
   const generateTimeSlots = (date = null) => {
     const slots = [];
 
-    // Saturday appointments: 9 AM through 11 AM
+    // Saturday appointments: 9 AM through 11 AM.
     if (date && date.getDay() === 6) {
       for (let hour = 9; hour <= 11; hour++) {
         slots.push(`${String(hour).padStart(2, '0')}:00`);
@@ -90,7 +94,7 @@ function Calendar() {
       return slots;
     }
 
-    // Monday through Friday: 10 AM through 3 PM
+    // Monday through Friday: 10 AM through 3 PM.
     for (let hour = 10; hour <= 15; hour++) {
       slots.push(`${String(hour).padStart(2, '0')}:00`);
     }
@@ -102,17 +106,17 @@ function Calendar() {
     ? generateTimeSlots(selectedDate)
     : generateTimeSlots();
 
-  // Check whether a date has available slots
+  // Check whether a date has available slots.
   const hasAvailableSlots = (dateStr) => {
     const date = new Date(`${dateStr}T12:00:00`);
     const dayAppointments = appointments[dateStr] || [];
 
-    // Sunday is unavailable
+    // Sunday is unavailable.
     if (date.getDay() === 0) {
       return false;
     }
 
-    // Maximum of two appointments per day
+    // Maximum of two appointments per day.
     if (dayAppointments.length >= 2) {
       return false;
     }
@@ -126,7 +130,7 @@ function Calendar() {
     );
   };
 
-  // Check whether a specific time slot is available
+  // Check whether a specific time slot is available.
   const isTimeSlotAvailable = (dateStr, time) => {
     const date = new Date(`${dateStr}T12:00:00`);
 
@@ -157,7 +161,7 @@ function Calendar() {
     });
   };
 
-  // Generate calendar days
+  // Generate calendar days.
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -179,15 +183,26 @@ function Calendar() {
     return days;
   };
 
+  // Format a date as YYYY-MM-DD for database/calendar use.
   const formatDate = (date) => {
     if (!date) return '';
 
-    // Use local calendar date rather than converting to UTC.
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  };
+
+  // Format a date as MM-DD-YYYY for the confirmation email.
+  const formatEmailDate = (date) => {
+    if (!date) return '';
+
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${month}-${day}-${year}`;
   };
 
   const getEarliestBookingDate = () => {
@@ -235,15 +250,18 @@ function Calendar() {
     }
   };
 
-  // Book appointment
+  // Book appointment and send the customer a confirmation email.
   const handleBooking = async () => {
     if (
       !selectedDate ||
       !selectedTime ||
       !firstName.trim() ||
       !lastName.trim() ||
-      !userEmail.trim()
+      !userEmail.trim() ||
+      !userPhone.trim() ||
+      !appointmentType
     ) {
+      alert('Please complete all required fields before booking.');
       return;
     }
 
@@ -254,27 +272,69 @@ function Calendar() {
       const bookedDate = selectedDate;
       const bookedTime = selectedTime;
 
+      const customerFirstName = firstName.trim();
+      const customerLastName = lastName.trim();
+      const customerEmail = userEmail.trim().toLowerCase();
+      const customerAppointmentType = appointmentType;
+
       const appointmentDateTime = new Date(
         `${dateStr}T${selectedTime}:00`
       );
 
-      // Add client
-      await addClient({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: userEmail.trim().toLowerCase()
+      // Add or retrieve the client.
+      const client = await addClient({
+        first_name: customerFirstName,
+        last_name: customerLastName,
+        email: customerEmail,
+        number: userPhone.trim()
       });
 
-      // Add appointment
+      // Save the appointment in Supabase.
       const newAppointment = await createAppointment({
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        email: userEmail.trim().toLowerCase(),
+        client_id: client.id,
+        first_name: customerFirstName,
+        last_name: customerLastName,
+        email: customerEmail,
         appointment_time: appointmentDateTime.toISOString(),
+        appointment_type: customerAppointmentType,
         notes: userNotes.trim() || null
       });
 
-      // Update calendar immediately
+      // Send the appointment confirmation email.
+      // Email errors won't undo a successfully saved appointment.
+      try {
+        const { error: emailError } =
+          await supabase.functions.invoke(
+            'appointment-confirmation',
+            {
+              body: {
+                first_name: customerFirstName,
+                email: customerEmail,
+                appointment_date: formatEmailDate(bookedDate),
+                appointment_time: formatTimeToAMPM(bookedTime),
+                appointment_type: customerAppointmentType
+              }
+            }
+          );
+
+        if (emailError) {
+          console.error(
+            'Appointment was booked, but the confirmation email failed:',
+            emailError
+          );
+        } else {
+          console.log(
+            'Appointment confirmation email request completed.'
+          );
+        }
+      } catch (emailError) {
+        console.error(
+          'Appointment was booked, but the confirmation email failed:',
+          emailError
+        );
+      }
+
+      // Update the calendar immediately.
       setAppointments((prev) => ({
         ...prev,
         [dateStr]: [
@@ -287,22 +347,26 @@ function Calendar() {
         ]
       }));
 
-      // Save the successful booking details for the confirmation
+      // Save the successful booking details for the confirmation message.
       setConfirmedAppointment({
         date: bookedDate,
-        time: bookedTime
+        time: bookedTime,
+        type: customerAppointmentType
       });
 
       setShowConfirmation(true);
 
-      // Scroll to the confirmation once React has rendered it
-      // Scroll to the top of the calendar page
-       window.scrollTo({
-        top: document.querySelector('.calendar-container').getBoundingClientRect().top + window.scrollY - 100,
+      // Scroll to the calendar confirmation message.
+      window.scrollTo({
+        top:
+          document.querySelector('.calendar-container')
+            .getBoundingClientRect().top +
+          window.scrollY -
+          100,
         behavior: 'smooth'
       });
 
-      // Reset the form after the confirmation has been displayed
+      // Reset the form after the confirmation has been displayed.
       setTimeout(() => {
         setShowConfirmation(false);
         setSelectedDate(null);
@@ -311,9 +375,10 @@ function Calendar() {
         setFirstName('');
         setLastName('');
         setUserEmail('');
+        setUserPhone('');
+        setAppointmentType('');
         setUserNotes('');
       }, 5000);
-
     } catch (error) {
       console.error('Error booking appointment:', error);
 
@@ -348,11 +413,34 @@ function Calendar() {
         <p>Schedule a consultation at your convenience</p>
       </div>
 
+      {/* Persistent red limited-slots banner */}
+      <div
+        role="alert"
+        style={{
+          backgroundColor: '#dc3545',
+          color: '#ffffff',
+          padding: '14px 18px',
+          borderRadius: '6px',
+          margin: '0 0 16px',
+          textAlign: 'center',
+          fontWeight: '700',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
+        Limited Client Slots Available!
+      </div>
+
       {showConfirmation && (
-        <div className="alert alert-success" role="status">
-          ✓ Appointment booked successfully for{' '}
-          {formatDisplayDate(selectedDate)} at{' '}
-          {formatTimeToAMPM(selectedTime)}
+        <div
+          ref={confirmationRef}
+          className="alert alert-success"
+          role="status"
+        >
+          Appointment booked successfully for{' '}
+          {formatDisplayDate(confirmedAppointment?.date)} at{' '}
+          {formatTimeToAMPM(confirmedAppointment?.time)}
+          {' '}by {confirmedAppointment?.type}.
         </div>
       )}
 
@@ -364,7 +452,7 @@ function Calendar() {
               onClick={() => changeMonth(-1)}
               className="btn btn-primary"
             >
-              ← Prev
+              Prev
             </button>
 
             <h3>
@@ -378,7 +466,7 @@ function Calendar() {
               onClick={() => changeMonth(1)}
               className="btn btn-primary"
             >
-              Next →
+              Next
             </button>
           </div>
 
@@ -519,9 +607,11 @@ function Calendar() {
                     <input
                       id="first-name"
                       type="text"
+                      required
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="First Name"
+                      autoComplete="given-name"
                       className="form-input"
                     />
                   </div>
@@ -531,9 +621,11 @@ function Calendar() {
                     <input
                       id="last-name"
                       type="text"
+                      required
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Last Name"
+                      autoComplete="family-name"
                       className="form-input"
                     />
                   </div>
@@ -543,11 +635,48 @@ function Calendar() {
                     <input
                       id="booking-email"
                       type="email"
+                      required
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
                       placeholder="john@example.com"
+                      autoComplete="email"
                       className="form-input"
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="booking-phone">Phone Number</label>
+                    <input
+                      id="booking-phone"
+                      type="tel"
+                      required
+                      value={userPhone}
+                      onChange={(e) => setUserPhone(e.target.value)}
+                      placeholder="(555) 123-4567"
+                      autoComplete="tel"
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="appointment-type">
+                      Appointment Type
+                    </label>
+                    <select
+                      id="appointment-type"
+                      required
+                      value={appointmentType}
+                      onChange={(e) =>
+                        setAppointmentType(e.target.value)
+                      }
+                      className="form-input"
+                    >
+                      <option value="">
+                        Select phone or video call
+                      </option>
+                      <option value="Phone Call">Phone Call</option>
+                      <option value="Video Call">Video Call</option>
+                    </select>
                   </div>
 
                   <div className="form-group">
@@ -569,13 +698,13 @@ function Calendar() {
                       !firstName.trim() ||
                       !lastName.trim() ||
                       !userEmail.trim() ||
+                      !userPhone.trim() ||
+                      !appointmentType ||
                       loading
                     }
                     className="btn btn-primary btn-large"
                   >
-                    {loading
-                      ? 'Booking...'
-                      : 'Confirm Appointment'}
+                    {loading ? 'Booking...' : 'Confirm Appointment'}
                   </button>
                 </div>
               )}
