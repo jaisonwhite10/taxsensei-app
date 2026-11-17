@@ -6,26 +6,26 @@ function Testimonial() {
     {
       id: 1,
       quote: "Jaison was great! He helped me navigate complex tax situations with ease and professionalism.",
-      author: "Jane Doe",
+      author: "Carlos Toribio",
       location: "New York"
     },
     {
       id: 2,
       quote: "Outstanding service! Jaison made my tax filing simple and stress-free. Highly recommended!",
-      author: "John Smith",
-      location: "Boston"
+      author: "Jhonny Perez",
+      location: "New York"
     },
     {
       id: 3,
-      quote: "Professional, knowledgeable, and responsive. Jaison saved me money and gave me peace of mind.",
+      quote: "Professional, knowledgeable, and responsive. Jaison gave me peace of mind.",
       author: "Sarah Johnson",
-      location: "Chicago"
+      location: "Boston"
     },
     {
       id: 4,
       quote: "Best tax advisor I've ever worked with. Thorough, detail-oriented, and always available to answer questions.",
       author: "Michael Brown",
-      location: "Los Angeles"
+      location: "Connecticut"
     }
   ];
 

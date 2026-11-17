@@ -308,6 +308,7 @@ function Calendar() {
             'appointment-confirmation',
             {
               body: {
+                appointment_id: newAppointment.id,
                 first_name: customerFirstName,
                 email: customerEmail,
                 appointment_date: formatEmailDate(bookedDate),
@@ -414,7 +415,7 @@ function Calendar() {
       </div>
 
       {/* Persistent red limited-slots banner */}
-      <div
+      {/*<div
         role="alert"
         style={{
           backgroundColor: '#dc3545',
@@ -430,7 +431,7 @@ function Calendar() {
       >
         Limited Client Slots Available!
       </div>
-
+      */}
       {showConfirmation && (
         <div
           ref={confirmationRef}
@@ -530,7 +531,7 @@ function Calendar() {
           </div>
 
           <div className="calendar-note">
-            <strong>Note:</strong> Each appointment requires a 2-hour
+            <strong>Note:</strong> Each appointment requires at least a 45-minute
             time block.
           </div>
         </div>
